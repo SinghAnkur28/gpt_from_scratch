@@ -69,7 +69,17 @@ class Head(nn.Module):
         self.value = nn.Linear(n_embd, head_size, bias=False)
         self.register_buffer('tril', torch.tril(torch.ones(block_size, block_size)))
 
-        
+        def forward(self, x):
+            B,T,C = x.shape
+            k = self.key(x)
+            q = self.query(x)
+            #compute attention scores
+            wei = q @ k.transpose(-2,1) * C**-0.5 #(B, T, C) -> (B,T,T)
+            wei = wei.masked_fill(self.tril[:T, :T] == 0, float('inf'))
+            #perform weighted aggregation
+            v = self.value(x)
+            out  = wei @ v
+            return out      
 
 class BigramLanguageModel(nn.Module):
 
